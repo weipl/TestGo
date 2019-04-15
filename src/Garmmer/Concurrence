@@ -1,0 +1,225 @@
+1、func Socket(domain, typ, proto int) (fd Handle, err error)
+    socket接受三个类型，分别是socket的通信域、类型和所用协议
+
+    =》》》socket通信域
+        通信域           含义        地址形式                            通信范围
+        AF_INET         IPv4域       IPv4地址(4个字节)端口号(2个字节)       在基于IPv4协议的网络中任意两台计算机上的两个应用程序
+        AF_INET6        IPv6域       IPv6地址(16个字节)端口号(2个字节)      在基于IPv6协议的网络中任意两台计算机上的两个应用程序
+        AF_UNIX         Unix域       路径名称                              在同一台计算机上的两个应用程序
+
+    =》》》socket类型
+        SOCK_DGRAM、SOCK_RAW、SOCK_SEQPACKET、SOCK_STREAM
+
+        SOCK_STREAM 这个协议是按照顺序的、可靠的、数据完整的基于字节流的连接。这是一个使用最多的socket类型，这个socket是使用TCP来进行传输。
+        SOCK_DGRAM 这个协议是无连接的、固定长度的传输调用。该协议是不可靠的，使用UDP来进行它的连接。
+        SOCK_SEQPACKET 这个协议是双线路的、可靠的连接，发送固定长度的数据包进行传输。必须把这个包完整的接受才能进行读取。
+        SOCK_RAW 这个socket类型提供单一的网络访问，这个socket类型使用ICMP公共协议。（ping、traceroute使用该协议）
+
+2、func Listen(network, address string) (Listener, error)
+    net.Listen用于获取监听器
+        listener,err := net.Listen("tcp","127.0.0.1:8085")
+
+3、func Accept(fd Handle) (nfd Handle, sa Sockaddr, err error)
+
+4、func Dial(network, address string) (*Client, error)
+    Dial函数用于向指定的网络地址发送连接建立申请
+    conn,err := net.Dial("tcp", "127.0.0.1:8085")
+
+    func DialTimeout(network, address string, timeout time.Duration) (Conn, error)
+    conn，err := net.DialTimeout("tcp", "127.0.0.1:8085", 2*time*Second)
+
+5、func Read(fd Handle, p []byte) (n int, err error)
+    socket的接受缓冲区中读取数据
+
+    func NewReader(rd io.Reader) *Reader
+
+6、line,err := reader.ReaBytes('\n')
+    reader上的ReadBytes方法来依次获取经过切分之后的数据
+
+7、write(b []byte)(n int, err error)
+    用于向socket的发送缓冲区写入数据
+
+    writer := bufio.NewWriter(conn)     //缓冲区最多写4096个字节数据
+
+线程
+    1)、线程的标识
+        每个线程都有属于自己的ID，这类ID也成为线程ID或者TID，当线程不复存在，其TID可以被其他线程复用
+    2)、线程间的控制
+        任何线程都可以对同一进程中其他线程进行有限的管理。这里管理主要使：
+            (1)创建线程                 pthread_create
+            (2)终止线程                 pthread_cancel
+            (3)连接已终止的线程          pthread_join
+            (4)分离线程                 pthread_detach
+
+        当然，一个线程对自身也可以进行两种控制：终止和分离
+            终止线程：(1)自身线程执行的start函数中执行return 方法会随着start函数结束而终止
+                     (2)主线程执行return，那么当前进程中的所有线程都会终止。
+                     (3)使用pthread_exit、exit也会终止自身。如果在主线程调用pthread_exit,只有主线程自己会被终止，而其他线程任然照常运行
+
+
+++++++++++++++++++++++++++++++++++++++++++++分隔符++++++++++++++++++++++++++++++++++++++++++++
+
+GO的并发机制
+
+1、原理探究
+    goroutine使GO的专属名字，其推荐使用channel来进行通信。channel主要是用来在多个goroutine之间传递数据，并且保证整个过程的并发安全性
+    go还推荐使用一些传统的并发的方法(互斥量、条件变量)
+
+  1.1线程实现模型
+    我们把当前G的那个M称为“当前M”，并把与当前M关联的那个P成为“本地P”
+    M：machine的缩写。一个M代表一个内核线程，或称“工作线程”
+    P：processor的缩写。一个P代表执行一个Go代码片段所需的资源(或称“上下文环境”)
+    G：goroutine的缩写。一个G代表一个Go代码片段。前者是对后者的一种封装
+
+         M结构(部分)
+         g0             *g      //g0表示一个特殊的goroutine。这个goroutine是在Go运行时系统在启动之初创建，用于执行一些运行时任务
+         mstartfn       func()  //mstartfn表示M的起始函数
+         curg           *g      //curg会存放当前M正在运行的那个G的指针
+         p              puintpter   //字段p的值则会指向与当前M关联的P
+         nextp          puintpter   //nextp用于暂存于当前M有潜在关联的P。把调度器将某个P赋给某个M的nextp字段的操作，成为对M和P的预联
+                                    //运行时系统有时候会把刚刚重新启用的M和已与它预联的那个P关联起来，这也是nextp的主要作用
+         spinning       bool        //表示这个M是否正在寻找可运行的G
+                                    //在寻找的过程中，M会处于自选状态
+         lockedg        *g          //表示当前M锁定的那个G
+
+         》》》mstartfn、curg、和p最能体现当前M的即时情况
+
+         有了M，Go程序的并发运行基础才得以形成
+         单个Go程序使用的M的最大值时可以设置的，runtime/debug/garbage.go.SetMaxThreads。初始值时10000，调小会造成异常
+
+         P
+         改变单个Go程序间接拥有的P的最大数量有两种方法。第一种，调用函数runtime.GOMAXPROCS。第二种，在Go程序运行前设置环境变量GOMAXPROCS的值
+         Pidle。此状态表明当前P未与任何M存在关联
+         Prunning。此状态表明当前P正在与某个M关联
+         Psyscall。此状态表明当前P中的运行的那个G正在进行系统调用
+         Pgcstop。此状态表明运行时系统需要停止调度。例如,运行时系统在开始垃圾回收的某些操作，就会试图把全局P列表中的所有P都置于这个状态
+         Pdead。此状态表明当前P前全都已经很不能用。如果调用runtime.GOMAXPROCS函数减少了P的最大数量，多余的P就会被运行时系统置于此状态
+
+         在P的结构中，可运行G队列和自由G列表是最重要的两个成员。
+
+         G
+         》》》Go的编译器会把go语句变成对内部函数newproc的调用,并把go函数及其参数都作为参数传递给这个函数调用。　这是一种递送并发任务的方法
+         主要状态
+         Gidle。表示当前G刚被新分配，但还未初始化
+         Grunnable。表示当前G正在可运行队列中等待运行
+         Grunning。表示当前G正在运行
+         Gsyscall。表示当前G正在执行系统调用
+         Gwaiting。表示当前G正在阻塞
+         Gdead。表示当前G正在闲置
+         Gcopystack。表示当前G的栈正在被移动，移动的原因可能是栈的扩展或收缩
+
+         除了上述状态，还有一个称为Gscan的状态。不过这个状态泵独立存在，而是组合状态的一部分。比如,Gscan与Grunnable组合成Gscanrunnable
+         表示当前G正等待运行，同时它的栈正被扫描，扫描的原因是GC（垃圾回收）任务的执行
+
+
+runtime包和goroutine
+    1、runtime.GOMAXPROCS函数      //设置常规运行时系统中P的最大数量。但这样会引起“Stop the world”。更好的方式时尽早设置环境变量GOMAXPROCS
+    2、runtime.Goexit函数          //调用runtime.Goexit函数之后，会立即使goroutine的运行终止，其他goroutine并不受影响。
+                                   //终止当前goroutine之前，会先执行该goroutine中所有还没执行的defer语句
+
+    3、runtime.Gosched函数         //暂停当前gortinue的运行。当前goroutine会被设置Grunable状态，并放入调度器的可运行G队列
+    4、runtime.NumGortinue函数     //会返回当前Go运行时系统中处于非Gdead状态的用户G的数量。这些共routine被视为“活跃的”或者“可被调度运行”，该函数返回值总是大于等于1
+    5、runtime.LockOSThread函数
+        runtime.UnlockOSThread函数    //对前者调用会使当前goroutine与当前M 锁定在一起，而对后者的调用则会解除这样的锁定
+    6、runtime/debug.SetMaxStack函数   //约束单个goroutine所能申请栈空间的最大尺寸。在main函数即init函数真正执行之前，主goroutinue会对此数值进行默认
+                                        //250MB 和 1G分别时32位和64位计算机系统下的默认值
+
+    7、runtime/debug.setMaxThreads       //对Go运行系统所使用的内核线程的数量（也可以认为时M的数量）进行设置
+    8、与垃圾回收有关的一些函数
+        调正GC的时候3个 参数：runtime/debug.SetGCPercent 、runtime.GC和runtime/debug.FreeOSMemory
+        前者用于设定触发自动GC的条件     后两者用于手动GC。自动GC时并行，手动GC时串行，手动要清扫依次内存，自动不用
+
+
+实战演练：载荷发生器
+      1、参数和结果
+            QPS(Query Per Second)和TPS（Transactions Per Second 每秒事务处理）这两者都是体现服务器软件性能的指标。
+            前者时对服务器上数据的读取操作，而后者是针对服务器上数据的写入或者修改操作。
+            平均无故障时间
+            处理超时时间
+      2、输出的结果
+            载荷的结果包含三个内容：请求（或者说载荷）和响应的内容、响应的状态以及请求处理耗时
+      3、基本结构
+        timeoutNS       time.Duration           //响应超时时间，   单位：ns
+        lps             uint32                  //每秒载荷量
+        durations       time.Duration           //负载持续时间    单位：ns
+
+        resultCh        chan *lib.CallResult    //调用结果通道
+
+        lib.CallResult类型的基本的类型结构
+        //用于表示调用结果的结构
+        type CallResult struct{
+            ID          int64           //ID
+            Req         RawReq          //原生请求
+            Resp        RawResp         //原生响应
+            Code        RetCode         //响应代码
+            Msg         string          //结果成因的简述
+            Elapsp      time.Duration   //耗时
+        }
+        根据响应超时时间和每秒载荷发送量，可以估算出载荷发送的大致频率（或称“载荷并发量”）
+        concurrency     uint32          //载荷并发量
+
+        //控制启用goroutine的数量
+        tickets     lib.GoTickets       //goroutine票池
+
+        //载荷发生器应该能够自动停止，可以这样声明代码通道的字段
+        stopSign chan struct{}      //停止信号的传递通道
+
+        //载荷发生器应该有这样的两个字段
+        ctx     context.Context     //上下文
+        cancelFunc  context.CancelFunc  //取消函数
+
+        //声明代表载荷发射器状态的常量
+        const(
+            //代表原始
+            STATUS_ORIGINAL         uint32 = 0
+            //代表正在启动
+            STATUS_STATING          uint32 = 1
+            //代表已启动
+            STATUS_STATED           uint32 = 2
+            //代表正在停止
+            STATUS_STOPPING         uint32 = 3
+            //代表已经停止
+            STATUS_STOPPED          uint32 = 4
+        )
+        上述声明放在lib子包中，代表载荷发生器状态的字段声明如下：
+        status      uint32      //状态
+
+        //用于表示载荷发生器的实现类型
+        type myGenerator struct{
+            caller      lib.Caller      //调用器
+            timeoutNS   time.Duration   //处理超时时间，单位：ns
+            lps         uint32          //每秒载荷量
+            durationNS  time.Duration   //负载持续时间，单位：ns
+            concurrency uint32          //载荷并发量
+            tickets     lib.GoTickets   //goroutine票池
+            ctx         context.Context //上下文
+            cancelFunc  context.CancelFunc  //取消函数
+            callCount   int64            //调用计数
+            status      uint32          //状态
+            resultCh    chan *lib.CallResult    //  调用结果通道
+        }
+
+        4、初始化
+            载荷发生器的初始化方式
+            func NewMyGenerator() *myGenerator
+
+            //新建一个载荷发生器
+            func NewMyGenerator(pset ParamSet) (lib.Generator, error){
+                logger.Infoln("New a load Generator...")
+                if err := pset.Check(); err != nil{
+                    return nil ,err
+                }
+                gen := &myGenerator{
+                    caller:         pset.Caller,
+                    timeoutNS:      pset:TimeoutNS,
+                    lps:            pset:LPS
+                    furationNS:     pset:furationNS,
+                    status:         pset:STATUS_ORIGINAL,
+                    resultCh:       pset:ResultCh
+                }
+                if err := gen.init();err != nil{
+                    retuen nil, err
+                }
+                return gen,nil
+            }
+

@@ -1,0 +1,27 @@
+同步
+    1、互斥锁
+        传统并发程序对共享资源进行访问控制的主要手段
+        var mutex sync.Mutex
+        func write(){
+            mutex.Lock()
+            defer mutex.Unlock()
+            //省略部分代码
+        }
+    2、读写锁
+        ...
+    3、条件变量
+        ...
+    4、只会执行一次
+        var once sync.Once
+        once.Do(func(){ fmt.printfln("Once!")})
+        Do方法有效调用次数永远是1，无论调用多少次，都是第一次调用有效
+
+    5、WaitGroup
+        sync.WaitGroup 类型的值是并发安全的。有三个指针方法，add、Done和Wait
+        add(n)      //加n
+        done()      //减1
+        wait()      //当检查给定计数，如果计数位0，那么该方法立即返回。如果技术大于0，那么调用所在的goroutine机会阻塞，然后等待+1，
+                    //直到在该值的add或者Done调用时防线给定计数器变回0，该值才会去唤醒因此而阻塞的所有goroutine，同时清零等待计数
+
+    6、sync.pool
+        用来存放临时值的容器，自动伸缩、高效，并发安全的

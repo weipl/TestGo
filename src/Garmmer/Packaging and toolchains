@@ -1,0 +1,18 @@
+1、命名为main的包邮特殊含义,Go语言编译程序会视图把这种名字的包编译位二进制可执行文件
+        使用go build把main包下的程序打包
+
+2、导入包：标准库 的包会从GOROOT中找。 Go开发者创建的包会在GOPATH目录中找。
+        顺序是-》先找安装目录，然后按顺序查找GOPATH
+        GOPATH如果是一个URL，使用go get命令从网上拉去指定URL的包
+
+        导包发现重名：使用别名来处理。 import{
+                                        "fmt"
+                                        myfmt   "mylib/fmt"     //左边的就是别名
+                                     }
+3、使用go的工具
+    1)、go build helloworld.go       //执行编译生成可执行文件
+    2)、go clean helloworld.go       //删除编译生成的可执行文件
+    3)、go build 指定目录/...        //...是指会编译目录下所有包
+    4)、go run helloworld.go         //编译执行helloworld.go
+    5)、go vet helloworld.go         //go vet检查错误。
+    6)、go doc tar                   //从命令行获取文档，查看命令的usage

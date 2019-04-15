@@ -1,0 +1,281 @@
+0、基本构成要素
+    标识符、关键字、字面量、分隔符、操作符
+    标识符
+    强调》》》（空标识符）
+        1）用_表示，一般用在变量的声明或代码包导入语句中。
+        2）声明变量却不适用编译器报错，使用_空标识符可以绕过编译器检查
+
+    关键字
+        1）
+        程序声明                import和packet
+        程序实体声明和定义       chan、const、func、interface、map、struct、type和var
+        程序流程控制            go、select、break、case、continue、default、defer、else、fallthrough、for、goto、if
+                                range、return和switch
+        2）于并发并发编程有关
+            go、chan和select
+        3）自定义类型
+            type myString string
+            把myString的类型声明为string类型的一个别名类型，这样做的好处是个类型转换，几乎没有什么代价
+    字面量
+        1）数字类型
+            12E-3
+        2）用于构造各种自定义的复合数据类型的类型字面量
+            type Name struct{
+                Forename string
+                Surname  string
+            }
+        3）复合字面量
+            字面类型{复合元素}
+            Name{Forename:"Robert",Surname:"Hao"}
+    操作符
+        除了+、-、^、*、&、！、<- 是一元操作符，其他都是二元操作符。其中*既是一元操作符又是二元操作符，一元是地址操作符、二元是算术运算符
+
+    表达式
+        表达式是把操作符和函数作用于操作数的计算方法
+        种类              用途                                          示例
+        选择表达式       选择一个值中的字段或者方法                       context.Speaker     //context是变量名
+        索引表达式       选择数组、切片、字符串或字典值中的某个元素        array1[1]      //array1表示一个数组，其长度必须大于1
+        切片表达式       选取数组、数组指针、切片或者字符串值中的某        slice1[0:2]    //slice1表示一个切片值，其长度必须大于或等于2
+                        个范围的元素
+        类型断言        判断一个接口值的实际类型是否为某个类型，或         v1.(I1)         //v1表示一个接口值，I1表示一个接口类型
+                        一个非接口值的类型是否实现了某个接口类型
+        调用表达式       调用一个函数或者一个值的方法                     v1.M1()          //v1表示一个值，M1表示于该值关联的一个方法
+
+        类型断言强调1》》》如果v1是非接口值，那么必须在做断言之前把它转换成接口值。因为Go中任何类型都是空接口类型的实现形式，所以
+                一般会这样做： interface{}(v1).(I1)
+                强调2》》》如果类型断言的结果是否，意味着该断言是失败的，失败的类型断言会引发一个运行时异常，解决方式是：
+                    var i1，ok = interface{}(v1).(I1)
+                   如果断言成功i1就会是经过类型转换后的I1类型的值，否则它将会是I1类型的零值.这样就不会发数运行时异常
+                   var 声明变量，多个变量赋值的方式叫做平行赋值
+
+1、go的基本类型
+    bool、byte、rune、int、string
+2、高级类型
+    数组、切片、字典、接口、结构体
+       数组
+       var ipv4 [4]uint8 = [4]uint8{192,168,0,1}
+       ipv4 := [...]uint8{192,168,0,1}
+       切片
+            var ips = []string{"192.168.0.1","192.168.0.2","192.168.0.3"}
+            slice := []string{99,""}        //声明字符串切片,第100空字符
+            ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            //创建长度和容量都是5个元素
+            source  := []string{"apple","Orange","plum","banana","grape"}
+            //对第三个元素做切片,并限制容量
+            slice   := source[2:3:3]
+                                    ---》这样做的好处是,新添加的元素会创建一个新的数组,不会"污染"之前数组的元素.
+                                    ---》怎么理解第三个元素呢？
+                                        第一个元素从数组那个位置开始，第二个是切片结束位置，第三个是切片容量结束位置。
+                                        再加一句，数组长度是5 ， 比价第三个元素的话，切片的容量是5-2 = 3
+            //向sliece追加新元素
+            slice   = append(slice,"kiwi")
+
+            ips[:cap(ips)]      //通过cap函数和切片表达式，最大化一个一个切片值的长度
+            ips = make(ips,"192.1668.0.4")      //  等号右边会根据ips的值生成新的切片值，并把“192.168.0.4”追加到该值最后。
+                                                //然后赋值操作会把这个新的切片值再赋给ips，底层下新，旧切片值两个数组
+
+            ips = make([]string,100)            //初始化一个元素类型为string且长度为100的切片值。这里的ips中100元素的值都是空字符串""
+       字典
+            Go中字典类型是散列表(Hash Table).散列表是一个实现了关联数组的数据结构，关联数组是用用于表示键值对的无序集合的一种抽象数据类型
+            Go中索引再同一个字典值是唯一的
+            var ipSwitches = map[string]bool{}      //ipSwitches变量，键类型是string，元素类型是bool。mapp[string]bool{}表示一个不包含任何数据类型的字典值
+            字典值是一个引用类型，零值是nil
+            ipSwitches["192.168.0.1"]               //添加和修改键值对
+            delete(ipSwitches,"192.168.0.1")        //删除键值对
+       函数和方法
+        func divide(dividend int, divisor int) (int,error){
+        }
+        func printTab(){
+        }
+        //参数列表中的参数必须有名称，结果列表中可有可无，但是要么都省，要么都保留
+        func divide(dividend int, divisor int) (result int,err error){
+        }
+
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        go里面有三种类型的函数:
+            1、普通的带有名字的函数
+
+            2、匿名函数或者lambda函数
+                func (x,y int)(z int){
+                }()
+
+            3、方法
+                func (接收器变量 接收器类型) 方法名(参数列表) (返回参数){
+                   //函数体
+                }
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        //》》》下面 的这种不常用，需要理解
+        方法是函数的一种，它其实上就是于某个数据类型关联再一起的函数，示例如下
+            //值方法的接收者是非指针数据类型
+            type myInt int
+            func (i myInt) add(another int) myInt{
+                i = i + myInt(another)
+                return i
+            }
+            //指针方法
+            func (i *myInt) add(another int) myInt{
+                *i = *i + myInt(another)
+                return *i
+            }
+        接口
+            Go的接口类型用于定义一组行为，其中每个行为都有一个方法声明表示
+            type Talk interface{
+                Hello(userName string) string
+                Talk(heard string) (saying string, end bool, err error)
+            }
+            接口可以嵌套。go的数据类型之间不存在继承关系
+
+            规范里描述的方法集
+            Values                  Methods Receivers
+            -----------------------------------------------
+            T                       (t T)
+            *T                      (t T) and (t *T)
+
+            从接收者类型的角度来看方法集
+            Methods Receivers       Values
+            -----------------------------------------------
+            (t T)                   T and *T
+            (t *T)                  *T
+
+        01 // 这个示例程序使用接口展示多态行为
+        02 package main
+        03
+        04 import (
+        05  "fmt"
+        06 )
+        07
+        08 // notifier是一个定义了
+        09 // 通知类行为的接口
+        10 type notifier interface {
+        11  notify()
+        12 }
+        13
+        14 // user在程序里定义一个用户类型
+        15 type user struct {
+        16  name  string
+        17  email string
+        18 }
+        19
+        20 // notify使用指针接收者实现了notifier接口
+        21 func (u *user) notify() {
+        22  fmt.Printf("Sending user email to %s<%s>\n",
+        23  u.name,
+        24  u.email)
+        25 }
+        26
+        27 // admin定义了程序里的管理员
+        28 type admin struct {
+        29  name  string
+        30  email string
+        31 }
+        32
+        33 // notify使用指针接收者实现了notifier接口
+        34 func (a *admin) notify() {
+        35  fmt.Printf("Sending admin email to %s<%s>\n",
+        36  a.name,
+        37  a.email)
+        38 }
+        39
+        40 // main是应用程序的入口
+        41 func main() {
+        42  // 创建一个user值并传给sendNotification
+        43  bill := user{"Bill", "bill@email.com"}
+        44  sendNotification(&bill)
+        45
+        46  // 创建一个admin值并传给sendNotification
+        47  lisa := admin{"Lisa", "lisa@email.com"}
+        48  sendNotification(&lisa)
+        49 }
+        50
+        51 // sendNotification接受一个实现了notifier接口的值
+        52 // 并发送通知
+        53 func sendNotification(n notifier) {
+        54  n.notify()
+        55 }
+        结构体
+            与数据类型相同，结构体类型属于值类型，因此结构体类型的零值不是nil。例如simpleCN的零值是simpleCN{}
+
+        Important》》》
+        Go语言中的引用类型有：映射（map），数组切片（slice），通道（channel），方法与函数
+        new 和 make都 是来创建分配类型内存。
+            不同的是new 返回的是指向类型的指针，make返回的是类型本身
+
+        所以有new这个内置函数，可以给我们分配一块内存让我们使用，但是现实的编码中，它是不常用的。我们通常都是采用短语句声明以及结构体的字面量达到我们的目的，比如：
+
+        i:=0
+        u:=user{}
+        这样更简洁方便，而且不会涉及到指针这种比麻烦的操作。
+
+        make函数是无可替代的，我们在使用slice、map以及channel的时候，还是要使用make进行初始化，然后才才可以对他们进行操作。
+3、流程控制语句
+       defer
+       语句可以让我们更加方便地执行异常捕获和资源回收任务
+
+        defer语句用于延迟调用指定的函数，它只能出现在函数的内部，由defer关键字以及针对某个函数的调用表达式组成。这里被调用的函数称为延迟函数
+        func outerFunc(){
+            defer fmt.Println("函数执行结束前一刻会被打印。")
+            fmt.Println("第一个被打印")
+        }
+        其中调用outerFunc的函数被称为调用函数，outerFunc成为外围函数
+        规则是：
+            1)、当外围函数中语句正常执行完毕时，只有其中所有的延迟函数都执行完毕，外围函数才会正常结束执行
+            2)、当执行外围函数中的return语句时，只有其中的所有延迟函数都执行完毕后，外围函数才会真正返回
+            3)、当外围函数中的代码引发运行时异常时，只有其中的所有延迟函数都执行完毕后，该运行时异常才会真正扩散至调用函数。
+
+        需要三个注意的地方
+            第一点：如果延迟函数中使用外部变量，就应该通过参数传入。
+                func printNumbrs(){
+                    for i:= 0;i < 5; i++{
+                        defer func(){
+                          fmt.Printf("%d",i)
+                        }
+                    }
+               }
+               上述执行结果是55555，原因是，那个时候i已经是5了
+               func printNumbrs(){
+                    for i:= 0;i < 5; i++{
+                        defer func(n int){
+                            fmt.Printf("%d",n)
+                        }
+                    }
+               }
+               上述执行结果是43210，为什么不是01234？请看下面
+            第二点：同一个外围函数内多个延迟函数调用的执行顺序，会与其所属的defer语句的执行顺序完全相反。
+                    同一个外围函数中每个defer语句在执行的时候，针对其延迟函数的调用都会被压入同一个栈。在该外围函数执行结束的前一刻，Go会从这个堆栈依次去除并执行
+
+            第三点：延迟函数调用若有其他参数传入那么那些参数的值会在当前defer语句执行时求出
+                func printNumbers(){
+                    for i:= 0; i < 5;i++{
+                        defer func(n int){
+                            fmt.Printf("%d",n)
+                        }(i * 2)
+                    }
+                }
+                执行结果是86420
+
+        panic和recover
+            一般使用error类型的值来向调用方报告错误。但是遇到致命错误的话，程序无法执行，只能用panic了
+            1、Go内建了专用函数panic，该函数用于停止当前的控制流程并引发一个运行时异常。它可以接受一个任意类型的参数值，但是为了见名知意一般使用string或者error
+                func main(){
+                    outerFunc()
+                }
+                func outerFunc(){
+                    innerFunc()
+                }
+                func innerFunc(){
+                    panic(errors.New("An intended fatal error"))
+                }
+                遇到panic函数后，innerFunc会停止。然后会向上调用，运行时异常就这样沿着调用栈反方向进行传播，直至到达当前goroutinue调用端的最顶层。
+                到达顶端意味着所有函数都停止了，程序已经崩溃。
+                除了panic函数引发异常，还可以有Go的运行时系统来引发，如数组越界。那么怎么“拦截”运行时异常呢？
+
+            2、recover
+                运行时异常一旦引发，就会向调用方传播直至程序崩溃。Go中"拦截"运行时的内建函数recover。
+                它可以使当前程序从异常中恢复并重新获得流程的控制权。recover函数被调用后，会返回一个interface{}类型的结果
+                recover和defer联合使用
+                defer func(){
+                    if p := recover(); p != nil{
+                        fmt.Printf("Recovered panic：%s\n",p)
+                    }
+                }
+
